@@ -12,7 +12,6 @@ import {
   updateOnboardingStage,
 } from '@/lib/db-helpers';
 
-export const runtime = 'edge';
 
 // Function definitions for data extraction
 const FUNCTIONS = [
