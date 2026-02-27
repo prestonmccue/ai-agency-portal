@@ -16,22 +16,33 @@ A conversational onboarding portal for AI agency clients. Instead of boring stat
 - [x] OpenRouter integration (Claude Sonnet)
 - [x] Real-time streaming responses
 - [x] Conversational onboarding flow
-- [x] Progress indicator
-- [ ] Auto-save to Supabase (function calling - TODO)
-- [ ] Memory/context loading (TODO)
+- [x] Progress indicator (dynamic, based on actual stage)
+- [x] Auto-save to Supabase (function calling implemented!)
+- [x] Memory/context loading (chat history persists!)
 
-### Phase 3: Dashboards ✅
-- [x] Client dashboard
-- [x] Training dashboard (UI only, mock data)
-- [x] Settings page
-- [ ] Real data integration (TODO)
+### Phase 3: Data Integration ✅
+- [x] Supabase client configuration
+- [x] Database helper functions (create, read, update)
+- [x] Function calling in chat API (6 functions for data extraction)
+- [x] Chat message persistence (every message saved)
+- [x] Chat history loading on page refresh
+- [x] Client record auto-creation on first message
+- [x] Profile completion percentage calculation
+- [x] Dynamic progress tracking in UI
+- [x] "Pick up where you left off" feature
 
-### Phase 4: Feedback (TODO)
+### Phase 4: Dashboards
+- [x] Client dashboard (UI complete)
+- [x] Training dashboard (UI only, mock data - needs real data)
+- [x] Settings page (UI complete)
+- [ ] Real data integration for dashboards (TODO)
+
+### Phase 5: Feedback (TODO)
 - [ ] Flag conversation feature
 - [ ] Feedback submission flow
 - [ ] Update info functionality
 
-### Phase 5: Deploy (TODO)
+### Phase 6: Deploy (TODO)
 - [ ] Performance optimization
 - [ ] Security audit
 - [ ] Production deployment
@@ -88,71 +99,14 @@ OPENROUTER_API_KEY=sk-or-v1-xxx
 
 3. Set up Supabase database:
 
-Run this SQL in your Supabase SQL editor:
+Run the schema file in your Supabase SQL editor:
 
-```sql
--- clients table
-CREATE TABLE clients (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  clerk_user_id TEXT UNIQUE NOT NULL,
-  company_name TEXT,
-  email TEXT NOT NULL,
-  tier TEXT CHECK (tier IN ('starter', 'pro', 'enterprise')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- client_profiles table
-CREATE TABLE client_profiles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
-  brand_data JSONB DEFAULT '{}',
-  business_context JSONB DEFAULT '{}',
-  voice_personality JSONB DEFAULT '{}',
-  onboarding_stage TEXT CHECK (onboarding_stage IN ('brand', 'context', 'voice', 'review', 'complete')) DEFAULT 'brand',
-  completed_at TIMESTAMP WITH TIME ZONE,
-  UNIQUE(client_id)
-);
-
--- chat_messages table
-CREATE TABLE chat_messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
-  role TEXT CHECK (role IN ('user', 'assistant', 'system')) NOT NULL,
-  content TEXT NOT NULL,
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- training_conversations table
-CREATE TABLE training_conversations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
-  conversation_data JSONB DEFAULT '{}',
-  flagged BOOLEAN DEFAULT FALSE,
-  feedback TEXT,
-  status TEXT CHECK (status IN ('pending', 'reviewed', 'fixed')) DEFAULT 'pending',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Enable RLS
-ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
-ALTER TABLE client_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE training_conversations ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies (users can only access their own data)
-CREATE POLICY "Users can view own client data" ON clients
-  FOR SELECT USING (clerk_user_id = auth.jwt() ->> 'sub');
-
-CREATE POLICY "Users can view own profile" ON client_profiles
-  FOR ALL USING (client_id IN (SELECT id FROM clients WHERE clerk_user_id = auth.jwt() ->> 'sub'));
-
-CREATE POLICY "Users can view own messages" ON chat_messages
-  FOR ALL USING (client_id IN (SELECT id FROM clients WHERE clerk_user_id = auth.jwt() ->> 'sub'));
-
-CREATE POLICY "Users can view own training data" ON training_conversations
-  FOR ALL USING (client_id IN (SELECT id FROM clients WHERE clerk_user_id = auth.jwt() ->> 'sub'));
+```bash
+# The complete schema is in supabase-schema.sql
+# Copy and paste the contents into: Supabase Dashboard → SQL Editor → New Query
 ```
+
+Or manually run the SQL from `supabase-schema.sql` (includes tables, indexes, RLS policies, and helper functions)
 
 4. Run the development server:
 ```bash
