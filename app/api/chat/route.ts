@@ -1,12 +1,22 @@
 export const dynamic = 'force-dynamic';
 
-// Simplified chat API without Clerk auth for now
-// TODO: Add proper auth once middleware issues resolved
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { getSupabase } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+    const user = await currentUser();
+    
+    if (!userId || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const body = await req.json();
-    const { messages, clientId } = body;
+    const { messages } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: 'Messages required' }), {
@@ -15,23 +25,74 @@ export async function POST(req: Request) {
       });
     }
 
-    const systemPrompt = `You are an expert onboarding specialist helping clients set up their AI agent for their business.
+    const supabase = getSupabase();
+    const email = user.emailAddresses[0]?.emailAddress || userId;
 
-Your goal is to gather information through natural conversation - NOT static forms. Make it feel like talking to a helpful consultant.
+    // Get or create client
+    let { data: client } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('clerk_user_id', userId)
+      .single();
 
-STAGES TO COMPLETE:
-1. **brand** - Company name, website, industry, brand colors
-2. **context** - Products/services, FAQs, policies
-3. **voice** - Tone, sample messages, words to use/avoid
-4. **review** - Show summary, get approval
+    if (!client) {
+      const { data: newClient } = await supabase
+        .from('clients')
+        .insert({ clerk_user_id: userId, email })
+        .select()
+        .single();
+      client = newClient;
 
-CONVERSATION GUIDELINES:
+      // Create profile
+      if (client) {
+        await supabase
+          .from('client_profiles')
+          .insert({ client_id: client.id });
+      }
+    }
+
+    // Get profile for context
+    const { data: profile } = await supabase
+      .from('client_profiles')
+      .select('*')
+      .eq('client_id', client?.id)
+      .single();
+
+    const stage = profile?.onboarding_stage || 'brand';
+
+    // Save user message
+    const latestUserMessage = messages[messages.length - 1];
+    if (latestUserMessage?.role === 'user' && client) {
+      await supabase.from('chat_messages').insert({
+        client_id: client.id,
+        role: 'user',
+        content: latestUserMessage.content,
+      });
+    }
+
+    // Build system prompt
+    const systemPrompt = `You are an expert onboarding specialist helping clients set up their AI agent.
+
+CURRENT STAGE: ${stage}
+COMPANY: ${profile?.brand_data?.company_name || 'Unknown'}
+
+STAGES:
+1. brand - Company name, website, industry, colors
+2. context - Products/services, FAQs, policies  
+3. voice - Tone, examples, words to use/avoid
+4. review - Summary and approval
+
+COLLECTED DATA:
+${JSON.stringify(profile || {}, null, 2)}
+
+GUIDELINES:
 - Ask ONE question at a time
-- Keep it conversational and friendly
-- Show progress naturally
-- Celebrate small wins: "Great!" "Got it!" "Perfect!"
+- Be conversational, not robotic
+- Use their company name once known
+- Celebrate progress: "Great!" "Got it!"
+- When you have enough info for a stage, say "Perfect! Let's move on to [next stage]"
 
-Start by asking for the company name if this is a new conversation.`;
+Start with: "What's your company name?" if brand stage and no company name yet.`;
 
     // Call OpenRouter
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -55,23 +116,27 @@ Start by asking for the company name if this is a new conversation.`;
     if (!response.ok) {
       const error = await response.text();
       console.error('OpenRouter error:', error);
-      return new Response(JSON.stringify({ error: 'AI service error', details: error }), {
+      return new Response(JSON.stringify({ error: 'AI service error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || 'Sorry, I had trouble responding. Please try again.';
+    const content = data.choices?.[0]?.message?.content || 'Sorry, please try again.';
 
-    return new Response(
-      JSON.stringify({
+    // Save assistant message
+    if (client) {
+      await supabase.from('chat_messages').insert({
+        client_id: client.id,
         role: 'assistant',
         content,
-      }),
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
+      });
+    }
+
+    return new Response(
+      JSON.stringify({ role: 'assistant', content }),
+      { headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Chat API error:', error);
