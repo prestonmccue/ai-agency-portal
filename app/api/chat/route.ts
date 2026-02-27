@@ -1,5 +1,4 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { StreamingTextResponse } from 'ai';
 import {
   getOrCreateClient,
   getChatHistory,
