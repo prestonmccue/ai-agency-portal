@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowRight, Lock } from 'lucide-react';
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -71,16 +73,20 @@ function StatusCard({
         </span>
       </div>
       <p className="text-gray-600">{description}</p>
-      <a
-        href={disabled ? '#' : href}
-        className={`inline-block px-4 py-2 rounded-lg transition ${
-          disabled
-            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-            : 'bg-black text-white hover:bg-gray-800'
-        }`}
-      >
-        {buttonText}
-      </a>
+      {disabled ? (
+        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-200 text-gray-500 cursor-not-allowed">
+          <Lock size={16} />
+          {buttonText}
+        </span>
+      ) : (
+        <Link
+          href={href}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition"
+        >
+          {buttonText}
+          <ArrowRight size={16} />
+        </Link>
+      )}
     </div>
   );
 }

@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
+
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
@@ -9,18 +11,18 @@ export default function Home() {
           Build your AI team member through conversation, not forms.
         </p>
         <div className="flex gap-4 justify-center mt-8">
-          <a 
+          <Link
             href="/sign-in"
             className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition"
           >
             Sign In
-          </a>
-          <a 
+          </Link>
+          <Link
             href="/sign-up"
             className="px-6 py-3 border border-border rounded-lg hover:bg-accent transition"
           >
             Get Started
-          </a>
+          </Link>
         </div>
       </div>
     </main>
