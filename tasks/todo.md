@@ -30,6 +30,63 @@
 
 ---
 
+## 🎯 IMMEDIATE ACTION ITEMS (FOR PRESTON)
+
+Before continuing to Phase 4, need to test Phase 3:
+
+1. **Get API Keys** (10 min):
+   - Clerk: https://dashboard.clerk.com (sign up → create app → copy keys)
+   - Supabase: https://app.supabase.com (sign up → new project → copy keys from Settings → API)
+
+2. **Configure Environment** (2 min):
+   - Edit `.env.local` and paste your Clerk + Supabase keys
+
+3. **Run Database Schema** (3 min):
+   - In Supabase dashboard: SQL Editor → New Query
+   - Copy/paste contents of `supabase-schema.sql` → Run
+
+4. **Test Locally** (5 min):
+   - `npm run dev`
+   - Sign up → Chat → Close browser → Reopen → Messages should reload!
+
+5. **Verify in Database** (2 min):
+   - In Supabase: SQL Editor → Query:
+     ```sql
+     SELECT * FROM clients;
+     SELECT * FROM chat_messages ORDER BY created_at DESC;
+     SELECT brand_data FROM client_profiles;
+     ```
+
+**Total Time:** ~22 minutes
+
+**Read This First:** `SESSION-SUMMARY.md` (3 min read)  
+**If Issues:** See `SETUP.md` for troubleshooting
+
+---
+
+## 🚦 DECISION POINT
+
+After testing Phase 3, decide:
+
+**Option A: Continue to Phase 4** (dashboards with real data)  
+- Estimated time: 4-6 hours
+- Makes the portal fully functional
+- Ready to show clients after this
+
+**Option B: Deploy as-is** (MVP with basic dashboards)  
+- Onboarding works perfectly
+- Dashboards show placeholder data
+- Can add real data later
+
+**Option C: Get feedback first**  
+- Show current build to Matt or test users
+- Iterate based on feedback
+- Then complete Phase 4
+
+**Recommendation:** Test Phase 3 first, then decide.
+
+---
+
 ## Phase 1: Foundation & Infrastructure
 *Goal: Get the skeleton up — auth, database, basic routing*
 
