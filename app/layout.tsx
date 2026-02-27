@@ -12,28 +12,16 @@ export const metadata: Metadata = {
   description: "Client onboarding and training portal",
 };
 
+// Temporary hardcode to debug env var issue
+const CLERK_KEY = "pk_test_Y3VkZGx5LXRocnVzaC04NS5jbGVyay5hY2NvdW50cy5kZXYk";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  
-  if (!publishableKey) {
-    return (
-      <html lang="en">
-        <body className={inter.className}>
-          <div className="p-8">
-            <h1 className="text-2xl font-bold text-red-500">Configuration Error</h1>
-            <p>Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable</p>
-          </div>
-        </body>
-      </html>
-    );
-  }
-
   return (
-    <ClerkProvider publishableKey={publishableKey}>
+    <ClerkProvider publishableKey={CLERK_KEY}>
       <html lang="en">
         <body className={inter.className}>{children}</body>
       </html>
