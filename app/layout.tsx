@@ -12,8 +12,10 @@ export const metadata: Metadata = {
   description: "Client onboarding and training portal",
 };
 
-// Temporary hardcode to debug env var issue
-const CLERK_KEY = "pk_test_Y3VkZGx5LXRocnVzaC04NS5jbGVyay5hY2NvdW50cy5kZXYk";
+// Support both naming conventions
+const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 
+                 process.env.CLERK_PUBLISHABLE_KEY ||
+                 "pk_test_Y3VkZGx5LXRocnVzaC04NS5jbGVyay5hY2NvdW50cy5kZXYk"; // fallback
 
 export default function RootLayout({
   children,
@@ -21,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider publishableKey={CLERK_KEY}>
+    <ClerkProvider publishableKey={clerkKey}>
       <html lang="en">
         <body className={inter.className}>{children}</body>
       </html>

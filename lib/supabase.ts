@@ -7,8 +7,9 @@ export function getSupabase(): SupabaseClient {
     return supabaseInstance;
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Support both Vercel integration names and manual names
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Missing Supabase environment variables');
@@ -46,20 +47,9 @@ export type ClientProfile = {
     industry?: string;
   };
   business_context: {
-    products?: Array<{
-      name: string;
-      description: string;
-      price?: number;
-    }>;
-    faqs?: Array<{
-      question: string;
-      answer: string;
-    }>;
-    policies?: {
-      refund?: string;
-      support_hours?: string;
-      [key: string]: string | undefined;
-    };
+    products?: Array<{ name: string; description: string; price?: number }>;
+    faqs?: Array<{ question: string; answer: string }>;
+    policies?: { [key: string]: string };
     tools?: string[];
   };
   voice_personality: {
@@ -80,15 +70,5 @@ export type ChatMessage = {
   role: 'user' | 'assistant' | 'system';
   content: string;
   metadata: Record<string, any>;
-  created_at: string;
-};
-
-export type TrainingConversation = {
-  id: string;
-  client_id: string;
-  conversation_data: Record<string, any>;
-  flagged: boolean;
-  feedback: string | null;
-  status: 'pending' | 'reviewed' | 'fixed';
   created_at: string;
 };
