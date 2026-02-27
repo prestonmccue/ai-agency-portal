@@ -1,14 +1,14 @@
 export const dynamic = 'force-dynamic';
 
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { getAuth } from '@clerk/nextjs/server';
+import { NextRequest } from 'next/server';
 import { getSupabase } from '@/lib/supabase';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    const user = await currentUser();
+    const { userId } = getAuth(req);
     
-    if (!userId || !user) {
+    if (!userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -26,7 +26,6 @@ export async function POST(req: Request) {
     }
 
     const supabase = getSupabase();
-    const email = user.emailAddresses[0]?.emailAddress || userId;
 
     // Get or create client
     let { data: client } = await supabase
@@ -38,20 +37,17 @@ export async function POST(req: Request) {
     if (!client) {
       const { data: newClient } = await supabase
         .from('clients')
-        .insert({ clerk_user_id: userId, email })
+        .insert({ clerk_user_id: userId, email: userId })
         .select()
         .single();
       client = newClient;
 
-      // Create profile
       if (client) {
-        await supabase
-          .from('client_profiles')
-          .insert({ client_id: client.id });
+        await supabase.from('client_profiles').insert({ client_id: client.id });
       }
     }
 
-    // Get profile for context
+    // Get profile
     const { data: profile } = await supabase
       .from('client_profiles')
       .select('*')
@@ -70,7 +66,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // Build system prompt
     const systemPrompt = `You are an expert onboarding specialist helping clients set up their AI agent.
 
 CURRENT STAGE: ${stage}
@@ -85,16 +80,9 @@ STAGES:
 COLLECTED DATA:
 ${JSON.stringify(profile || {}, null, 2)}
 
-GUIDELINES:
-- Ask ONE question at a time
-- Be conversational, not robotic
-- Use their company name once known
-- Celebrate progress: "Great!" "Got it!"
-- When you have enough info for a stage, say "Perfect! Let's move on to [next stage]"
+Ask ONE question at a time. Be conversational. Celebrate progress.
+Start with: "What's your company name?" if brand stage and no company name.`;
 
-Start with: "What's your company name?" if brand stage and no company name yet.`;
-
-    // Call OpenRouter
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -105,10 +93,7 @@ Start with: "What's your company name?" if brand stage and no company name yet.`
       },
       body: JSON.stringify({
         model: 'anthropic/claude-3.5-sonnet',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages,
-        ],
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
         temperature: 0.7,
       }),
     });
@@ -125,7 +110,6 @@ Start with: "What's your company name?" if brand stage and no company name yet.`
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || 'Sorry, please try again.';
 
-    // Save assistant message
     if (client) {
       await supabase.from('chat_messages').insert({
         client_id: client.id,

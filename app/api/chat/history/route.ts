@@ -1,11 +1,12 @@
 export const dynamic = 'force-dynamic';
 
-import { auth } from '@clerk/nextjs/server';
+import { getAuth } from '@clerk/nextjs/server';
+import { NextRequest } from 'next/server';
 import { getSupabase } from '@/lib/supabase';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = getAuth(req);
     
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -16,7 +17,6 @@ export async function GET(req: Request) {
 
     const supabase = getSupabase();
 
-    // Get client
     const { data: client } = await supabase
       .from('clients')
       .select('*')
@@ -30,7 +30,6 @@ export async function GET(req: Request) {
       );
     }
 
-    // Get chat history
     const { data: messages } = await supabase
       .from('chat_messages')
       .select('*')
@@ -38,7 +37,6 @@ export async function GET(req: Request) {
       .order('created_at', { ascending: true })
       .limit(100);
 
-    // Get profile
     const { data: profile } = await supabase
       .from('client_profiles')
       .select('*')
